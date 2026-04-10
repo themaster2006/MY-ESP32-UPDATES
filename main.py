@@ -29,7 +29,7 @@ import struct
 # ================================================================
 LED_PIN      = 2          # ESP32: 2 | Pico W: "LED" | ESP32-S3/C3: 8
 LED_ACTIVE   = 1          # 1 = HIGH enciende | 0 = LOW enciende (ESP32 built-in = 1)
-DEVICE_NAME  = "SALEM-LED"  # nombre visible en Bluetooth
+DEVICE_NAME  = "SOLOMON"  # nombre visible en Bluetooth
 
 # ================================================================
 #   CONSTANTES BLE UART (Nordic UART Service — NUS)
