@@ -4,22 +4,6 @@ import time
 from machine import Pin
 
 # ================================================================
-# WIFI
-# ================================================================
-SSID = "Flia novas p"
-PASSWORD = "novas1425"
-
-def conectar_wifi():
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if not wlan.isconnected():
-        print("Conectando WiFi...")
-        wlan.connect(SSID, PASSWORD)
-        while not wlan.isconnected():
-            time.sleep(1)
-    print("WiFi OK:", wlan.ifconfig())
-
-# ================================================================
 # TELEGRAM
 # ================================================================
 TOKEN = "7104559959:AAFWsh7eViJtDucvb8hn-58oS8gx0i6anDk"
