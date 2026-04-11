@@ -36,8 +36,8 @@ def enviar(msg):
 # ================================================================
 # PROXY IA
 # ================================================================
-PROXY_URL = "http://10.0.0.4:5000/ia"
-PING_URL  = "http://10.0.0.4:5000/ping"
+PROXY_URL = "https://esp32s-proxy.onrender.com/ia"
+PING_URL  = "https://esp32s-proxy.onrender.com/ping"
 
 proxy_activo = False
 ultimo_check = 0
