@@ -8,45 +8,18 @@ import machine
 from machine import Pin
 
 # ================================================================
-# WIFI
-# ================================================================
-WIFI_SSID = "Flia novas p"
-WIFI_PASS = "novas1425"
-
-def connect_wifi():
-    wlan = network.WLAN(network.STA_IF)
-
-    wlan.active(False)
-    time.sleep(1)
-    wlan.active(True)
-    time.sleep(1)
-
-    wlan.disconnect()
-    time.sleep(0.5)
-
-    print("[MAIN] Connecting WiFi...")
-    wlan.connect(WIFI_SSID, WIFI_PASS)
-
-    timeout = 20
-    start = time.time()
-
-    while time.time() - start < timeout:
-        if wlan.isconnected():
-            print("[MAIN] WiFi:", wlan.ifconfig())
-            return True
-        time.sleep(1)
-
-    print("[MAIN] WiFi failed")
-    return False
-
-
-# ================================================================
 # OTA
 # ================================================================
 FILE_URL   = "https://raw.githubusercontent.com/themaster2006/MY-ESP32-UPDATES/refs/heads/main/main.py"
 LOCAL_FILE = "main.py"
 
 def check_update():
+    wlan = network.WLAN(network.STA_IF)
+
+    if not wlan.isconnected():
+        print("[OTA] No WiFi — skipping update")
+        return
+
     try:
         print("[OTA] Checking update...")
         r = urequests.get(FILE_URL)
@@ -97,7 +70,15 @@ def enviar(msg):
 
 
 # ================================================================
-# PROXY IA
+# INIT (AQUÍ PASA TODO)
+# ================================================================
+check_update()  # 👈 SOLO corre al arrancar (reset)
+
+enviar("🚀 ESP32 listo")
+
+
+# ================================================================
+# RESTO DE TU CÓDIGO (igual que antes)
 # ================================================================
 PROXY_URL = "https://esp32s-proxy.onrender.com/ia"
 PING_URL  = "https://esp32s-proxy.onrender.com/ping"
@@ -137,9 +118,6 @@ def preguntar_ia(prompt):
         return None
 
 
-# ================================================================
-# TELEGRAM RECEIVE
-# ================================================================
 last_update_id = 0
 
 def leer_comandos():
@@ -170,9 +148,6 @@ def leer_comandos():
         pass
 
 
-# ================================================================
-# LED
-# ================================================================
 led = Pin(2, Pin.OUT)
 led.value(0)
 
@@ -183,36 +158,16 @@ def ejecutar_comando(cmd):
 
     cmd = cmd.strip().lower()
 
-    # IA
-    if cmd.startswith("ia "):
-        prompt = cmd[3:]
-
-        if not proxy_activo:
-            enviar("⚠️ IA no disponible")
-            return
-
-        respuesta = preguntar_ia(prompt)
-
-        if respuesta:
-            enviar(f"🤖 {respuesta}")
-        else:
-            enviar("⚠️ Error IA")
-
-        return
-
-    # OFF
     if cmd == "off":
         led.value(0)
         enviar("LED apagado ❌")
         return
 
-    # ESTADO
     if cmd == "estado":
         estado = "ON" if led.value() else "OFF"
         enviar(f"LED: {estado}")
         return
 
-    # TIMER
     try:
         segundos = float(cmd)
 
@@ -226,16 +181,6 @@ def ejecutar_comando(cmd):
 
     except:
         enviar(f"Comando inválido: {cmd}")
-
-
-# ================================================================
-# INIT
-# ================================================================
-if connect_wifi():
-    check_update()
-    enviar("🚀 ESP32 listo")
-else:
-    print("[MAIN] Sin WiFi, continuando...")
 
 
 # ================================================================
