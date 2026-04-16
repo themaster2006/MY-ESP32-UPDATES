@@ -1,7 +1,85 @@
+# ================================================================
+# IMPORTS
+# ================================================================
 import network
 import urequests
 import time
+import machine
 from machine import Pin
+
+# ================================================================
+# WIFI
+# ================================================================
+WIFI_SSID = "Flia novas p"
+WIFI_PASS = "novas1425"
+
+def connect_wifi():
+    wlan = network.WLAN(network.STA_IF)
+
+    wlan.active(False)
+    time.sleep(1)
+    wlan.active(True)
+    time.sleep(1)
+
+    wlan.disconnect()
+    time.sleep(0.5)
+
+    print("[MAIN] Connecting WiFi...")
+    wlan.connect(WIFI_SSID, WIFI_PASS)
+
+    timeout = 20
+    start = time.time()
+
+    while time.time() - start < timeout:
+        if wlan.isconnected():
+            print("[MAIN] WiFi:", wlan.ifconfig())
+            return True
+        time.sleep(1)
+
+    print("[MAIN] WiFi failed")
+    return False
+
+
+# ================================================================
+# OTA
+# ================================================================
+FILE_URL   = "https://raw.githubusercontent.com/themaster2006/MY-ESP32-UPDATES/refs/heads/main/main.py"
+LOCAL_FILE = "main.py"
+
+def check_update():
+    try:
+        print("[OTA] Checking update...")
+        r = urequests.get(FILE_URL)
+
+        if r.status_code == 200:
+            new_code = r.content
+            r.close()
+
+            try:
+                with open(LOCAL_FILE, "rb") as f:
+                    current = f.read()
+
+                if current == new_code:
+                    print("[OTA] Already up to date")
+                    return
+
+            except:
+                pass
+
+            with open(LOCAL_FILE, "wb") as f:
+                f.write(new_code)
+
+            print("[OTA] Updated! Rebooting...")
+            time.sleep(1)
+            machine.reset()
+
+        else:
+            print("[OTA] HTTP error:", r.status_code)
+            r.close()
+
+    except Exception as e:
+        print("[OTA] Error:", e)
+
 
 # ================================================================
 # TELEGRAM
@@ -16,6 +94,7 @@ def enviar(msg):
         r.close()
     except:
         pass
+
 
 # ================================================================
 # PROXY IA
@@ -44,6 +123,7 @@ def check_proxy():
 
         proxy_activo = False
 
+
 def preguntar_ia(prompt):
     if not proxy_activo:
         return None
@@ -55,6 +135,7 @@ def preguntar_ia(prompt):
         return res.get("respuesta", "Sin respuesta")
     except:
         return None
+
 
 # ================================================================
 # TELEGRAM RECEIVE
@@ -88,6 +169,7 @@ def leer_comandos():
     except:
         pass
 
+
 # ================================================================
 # LED
 # ================================================================
@@ -101,14 +183,12 @@ def ejecutar_comando(cmd):
 
     cmd = cmd.strip().lower()
 
-    # =========================
     # IA
-    # =========================
     if cmd.startswith("ia "):
         prompt = cmd[3:]
 
         if not proxy_activo:
-            enviar("⚠️ IA no disponible (proxy caído)")
+            enviar("⚠️ IA no disponible")
             return
 
         respuesta = preguntar_ia(prompt)
@@ -116,53 +196,59 @@ def ejecutar_comando(cmd):
         if respuesta:
             enviar(f"🤖 {respuesta}")
         else:
-            enviar("⚠️ Error con IA")
+            enviar("⚠️ Error IA")
 
         return
 
-    # =========================
-    # NORMAL
-    # =========================
+    # OFF
     if cmd == "off":
         led.value(0)
         enviar("LED apagado ❌")
         return
 
+    # ESTADO
     if cmd == "estado":
         estado = "ON" if led.value() else "OFF"
         enviar(f"LED: {estado}")
         return
 
+    # TIMER
     try:
         segundos = float(cmd)
 
         if segundos <= 0:
-            enviar("Error: número inválido")
+            enviar("Número inválido")
             return
 
         led.value(1)
         _timer_end = time.ticks_add(time.ticks_ms(), int(segundos * 1000))
-
         enviar(f"LED ON {segundos}s 💡")
 
     except:
         enviar(f"Comando inválido: {cmd}")
 
-# ================================================================
-# MAIN
-# ================================================================
-conectar_wifi()
-enviar("ESP32 iniciado 🚀")
 
+# ================================================================
+# INIT
+# ================================================================
+if connect_wifi():
+    check_update()
+    enviar("🚀 ESP32 listo")
+else:
+    print("[MAIN] Sin WiFi, continuando...")
+
+
+# ================================================================
+# LOOP
+# ================================================================
 while True:
-    # 🔍 Revisar proxy cada 10 segundos
+
     if time.ticks_diff(time.ticks_ms(), ultimo_check) > 10000:
         check_proxy()
         ultimo_check = time.ticks_ms()
 
     leer_comandos()
 
-    # ⏱️ Timer LED
     if _timer_end and time.ticks_diff(_timer_end, time.ticks_ms()) <= 0:
         led.value(0)
         enviar("LED apagado automático ⏱️")
